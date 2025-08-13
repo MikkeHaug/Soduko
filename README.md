@@ -6,7 +6,7 @@ Dette prosjektet er et grafisk Sudoku-spill laget i Python med tkinter. Du kan f
 - Genererer tilfeldige Sudoku-brett
 - Løser Sudoku automatisk
 - Sjekker om brukerens løsning er korrekt
-- Enkel vanskelighetsgrad ("Lett")
+- Flere vanskelighetsgrader ("Lett", "Medium" og "Expert")
 - GUI laget med tkinter
 
 ## Kom i gang
