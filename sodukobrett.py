@@ -1,6 +1,7 @@
 import tkinter as tk
 import random
 import tkinter.messagebox
+import os
 
 def generate_full_board():
     # Backtracking Sudoku generator
@@ -92,41 +93,107 @@ def generate_expert_board():
                 board[i][j] = 0
     return board
 
+
+
+
+
+import sys
+
 class SudokuGUI:
+    @staticmethod
+    def get_save_path():
+        # Finner mappen der scriptet eller exe-filen kjører
+        if getattr(sys, 'frozen', False):
+            folder = os.path.dirname(sys.executable)
+        else:
+            folder = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(folder, "sudoku_save.txt")
+
+
     def __init__(self, master):
         self.master = master
         master.title("Sudoku")
-
         self.entries = []
         for i in range(9):
             row = []
             for j in range(9):
                 padx = 2
                 pady = 2
-                # Ekstra space kun under rad 3 og rad 6
                 if i == 2 or i == 5:
-                    pady = (2, 10)  # (top, bottom) ekstra under rad 3 og 6
-                # Ekstra space kun på høyresiden av kolonne 3 og 6
+                    pady = (2, 10)
                 if j == 2 or j == 5:
-                    padx = (2, 10)  # (left, right) ekstra på høyre av kolonne 3 og 6
+                    padx = (2, 10)
                 e = tk.Entry(master, width=2, font=('Arial', 18), justify='center')
                 e.grid(row=i, column=j, padx=padx, pady=pady)
-                # Koble til sjekk-funksjon når feltet mister fokus
                 e.bind("<FocusOut>", lambda event: self.check_board())
                 row.append(e)
             self.entries.append(row)
 
-        self.solve_button = tk.Button(master, text="Løs", command=self.solve)
+        self.solve_button = tk.Button(master, text="Løs", command=self.confirm_and_solve)
         self.solve_button.grid(row=1, column=11)
 
-        self.easy_button = tk.Button(master, text="Lett", command=lambda: fill_easy_board(self))
+        self.easy_button = tk.Button(master, text="Lett", command=lambda: self.confirm_and_fill(fill_easy_board))
         self.easy_button.grid(row=2, column=11)
 
-        self.medium_button = tk.Button(master, text="Medium", command=lambda: fill_medium_board(self))
+        self.medium_button = tk.Button(master, text="Medium", command=lambda: self.confirm_and_fill(fill_medium_board))
         self.medium_button.grid(row=3, column=11)
 
-        self.expert_button = tk.Button(master, text="Expert", command=lambda: fill_expert_board(self))
+        self.expert_button = tk.Button(master, text="Expert", command=lambda: self.confirm_and_fill(fill_expert_board))
         self.expert_button.grid(row=4, column=11)
+
+        # Koble lukkefunksjon til vinduet og last brett
+        self.master.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.load_board()
+
+    def confirm_and_fill(self, fill_func):
+        if tkinter.messagebox.askyesno("Bekreft", "Dette vil overskrive nåværende brett. Er du sikker?"):
+            fill_func(self)
+
+    def confirm_and_solve(self):
+        if tkinter.messagebox.askyesno("Bekreft", "Dette vil overskrive nåværende brett med løsningen. Er du sikker?"):
+            self.solve()
+
+
+    def on_close(self):
+        if tkinter.messagebox.askyesno("Avslutt", "Vil du lagre spillet før du avslutter?"):
+            success, msg = self.save_board()
+            if success:
+                tkinter.messagebox.showinfo("Lagring", msg)
+            else:
+                tkinter.messagebox.showerror("Lagring feilet", msg)
+        self.master.destroy()
+
+    def save_board(self):
+        board = []
+        for i in range(9):
+            row = []
+            for j in range(9):
+                val = self.entries[i][j].get()
+                if val.isdigit():
+                    row.append(val)
+                else:
+                    row.append("0")
+            board.append(row)
+        save_path = self.get_save_path()
+        try:
+            with open(save_path, "w") as f:
+                for row in board:
+                    f.write(",".join(row) + "\n")
+            return True, f"Spillet ble lagret til {save_path}"
+        except Exception as e:
+            return False, f"Kunne ikke lagre spillet:\n{e}"
+
+    def load_board(self):
+        save_path = self.get_save_path()
+        if os.path.exists(save_path):
+            with open(save_path, "r") as f:
+                lines = f.readlines()
+                for i, line in enumerate(lines):
+                    values = line.strip().split(",")
+                    for j, val in enumerate(values):
+                        self.entries[i][j].delete(0, tk.END)
+                        if val != "0":
+                            self.entries[i][j].insert(0, val)
 
     def solve(self):
         board = []
